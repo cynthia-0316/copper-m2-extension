@@ -25,6 +25,10 @@ const STARTERS = [
   "How much is Copper Home with Copper Plus, paid yearly, for 2 years?",
   "Is Copper Notes in Night Sky in stock?",
   "Is Copper Plus cheaper monthly or yearly?",
+  // The extension's two, so every one of Copper's five tools has a question
+  // that makes it work: get_products and recommend_setup.
+  "What does Copper sell, and what colors does each product come in?",
+  "I record lectures and have $200 for 2 years. What should I get?",
 ];
 
 type Turn = { id: number; question: string; progress: Progress | null };

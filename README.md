@@ -18,6 +18,11 @@ prices, cost, stock); the fifth answers "what should I buy?".
 Ask it something like: _"I'm a student who records lectures. I have $200 for 2
 years. What should I get, and what colors can I get right now?"_
 
+The chat offers five suggested questions, one for each of Copper's five tools:
+the original three (cost, stock, monthly versus yearly) plus "What does Copper
+sell, and what colors does each product come in?" for `get_products` and the
+lecture question above for `recommend_setup`.
+
 `recommend_setup` takes what you want to do (home, meetings, lectures or both),
 how many years, and an optional budget. It returns the devices that fit, the
 cost of the free plan and of Copper Plus over those years, which plan it
