@@ -138,4 +138,80 @@ describe("Ask Copper tool cards", () => {
     expect(thinking.querySelector("code")?.textContent).toBe("calculate_cost");
     expect(thinking.textContent).not.toContain("**");
   });
+
+  it("draws recommend_setup: the devices, stock, both plans and the pick", () => {
+    // Made-up numbers, so they can only have come from the tool result.
+    const setup = tool(
+      "recommend_setup",
+      { use: "lectures", years: 2, budgetUsd: 500 },
+      {
+        status: "ok",
+        years: 2,
+        budgetUsd: 500,
+        products: [
+          {
+            id: "copper-notes",
+            name: "Copper Notes",
+            priceUsd: 321,
+            feature: {
+              name: "Lecture Mode",
+              description: "Notes with key terms.",
+            },
+            colors: [
+              {
+                color: "Night Sky",
+                stock: "backordered",
+                restockDate: "2026-11-14",
+              },
+              { color: "Desert Sand", stock: "in_stock", restockDate: null },
+            ],
+          },
+        ],
+        options: [
+          { plan: "free", name: "Free", totalUsd: 321, withinBudget: true },
+          {
+            plan: "copper-plus",
+            name: "Copper Plus",
+            totalUsd: 654,
+            withinBudget: false,
+          },
+        ],
+        recommended: "free",
+      },
+    );
+    render(<Answer progress={done([setup])} tools />);
+    const card = within(screen.getByTestId("tool-call"));
+    expect(card.getByText("Copper Notes")).toBeInTheDocument();
+    expect(
+      card.getByText(/Lecture Mode: Notes with key terms\./),
+    ).toBeInTheDocument();
+    expect(
+      card.getByText("Back-ordered until Nov 14, 2026"),
+    ).toBeInTheDocument();
+    expect(card.getByText("In stock")).toBeInTheDocument();
+    expect(card.getByText("$321 over 2 years")).toBeInTheDocument();
+    expect(card.getByText("$654 over 2 years")).toBeInTheDocument();
+    // Only the picked plan is marked.
+    expect(card.getAllByText("Recommended")).toHaveLength(1);
+  });
+
+  it("draws recommend_setup when the budget falls short", () => {
+    const setup = tool(
+      "recommend_setup",
+      { use: "home", years: 1, budgetUsd: 100 },
+      {
+        status: "over_budget",
+        years: 1,
+        budgetUsd: 100,
+        products: [],
+        cheapestTotalUsd: 149,
+        shortByUsd: 49,
+      },
+    );
+    render(<Answer progress={done([setup])} tools />);
+    const card = screen.getByTestId("tool-call");
+    expect(card.textContent).toContain("$100 isn't enough");
+    expect(card.textContent).toContain("$149 over 1 year, $49 more.");
+    expect(card.textContent).not.toContain("Recommended");
+  });
 });

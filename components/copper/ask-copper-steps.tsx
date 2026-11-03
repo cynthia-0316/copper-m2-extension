@@ -206,7 +206,7 @@ const USES: Record<string, string> = {
   both: "Home and meetings",
 };
 
-const PILL = "rounded-full px-2 py-0.5 text-xs font-medium";
+const PILL = "rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap";
 
 function StockPill({
   stock,
@@ -362,27 +362,36 @@ function Came({ step }: { step: ToolStep }) {
         {products.map((product, i) => {
           const feature = asRow(product.feature);
           return (
-            <div key={i} className="space-y-1">
-              <div className="flex justify-between gap-3 font-medium">
-                <span>{asText(product.name)}</span>
-                <span>{usd(product.priceUsd)}</span>
+            <div
+              key={i}
+              className="bg-card space-y-2 rounded-xl border p-3 shadow-xs"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-base font-semibold">
+                  {asText(product.name)}
+                </span>
+                <span className="text-primary text-base font-bold">
+                  {usd(product.priceUsd)}
+                </span>
               </div>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground bg-accent/10 rounded-md px-2.5 py-1.5 text-xs leading-relaxed">
                 {asText(feature.name)}: {asText(feature.description)}
               </p>
               {Array.isArray(product.colors) ? (
-                asList(product.colors).map((row, j) => (
-                  <div
-                    key={j}
-                    className="flex items-center justify-between gap-3"
-                  >
-                    <span>{asText(row.color)}</span>
-                    <StockPill
-                      stock={asText(row.stock)}
-                      restockDate={row.restockDate}
-                    />
-                  </div>
-                ))
+                <div className="divide-y">
+                  {asList(product.colors).map((row, j) => (
+                    <div
+                      key={j}
+                      className="flex items-center justify-between gap-3 py-1.5"
+                    >
+                      <span>{asText(row.color)}</span>
+                      <StockPill
+                        stock={asText(row.stock)}
+                        restockDate={row.restockDate}
+                      />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <p>Stock can&apos;t be checked right now.</p>
               )}
@@ -390,33 +399,42 @@ function Came({ step }: { step: ToolStep }) {
           );
         })}
         {out.status === "over_budget" ? (
-          <p className="border-t pt-2">
+          <p className="border-chart-4 bg-chart-4/20 rounded-xl border p-3 leading-relaxed">
             {usd(out.budgetUsd)} isn&apos;t enough: the cheapest setup is{" "}
             <span className="font-semibold">{usd(out.cheapestTotalUsd)}</span>{" "}
             over {length}, {usd(out.shortByUsd)} more.
           </p>
         ) : (
-          <div className="space-y-1 border-t pt-2">
-            {asList(out.options).map((option, i) => (
-              <div key={i} className="flex items-center justify-between gap-3">
-                <span>
-                  {asText(option.name)}
-                  {option.plan === out.recommended && (
-                    <span
-                      className={cn(
-                        PILL,
-                        "bg-accent text-accent-foreground ml-2",
-                      )}
-                    >
-                      Recommended
-                    </span>
+          <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
+            {asList(out.options).map((option, i) => {
+              const recommended = option.plan === out.recommended;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "bg-card flex flex-col gap-1.5 rounded-xl border p-3 shadow-xs",
+                    recommended && "ring-primary bg-primary/5 ring-2",
                   )}
-                </span>
-                <span className="font-semibold">
-                  {usd(option.totalUsd)} over {length}
-                </span>
-              </div>
-            ))}
+                >
+                  <span className="font-medium">
+                    {asText(option.name)}
+                    {recommended && (
+                      <span
+                        className={cn(
+                          PILL,
+                          "bg-accent text-accent-foreground ml-2",
+                        )}
+                      >
+                        Recommended
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-base font-bold">
+                    {usd(option.totalUsd)} over {length}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -431,7 +449,7 @@ function ToolCard({ step, number }: { step: ToolStep; number: number }) {
     <div
       data-testid="tool-call"
       data-tool={step.name}
-      className="bg-card overflow-hidden rounded-lg border"
+      className="bg-card overflow-hidden rounded-xl border shadow-sm"
     >
       <div className="bg-accent text-accent-foreground flex items-center gap-2 px-3 py-2 text-sm">
         <span className="font-mono font-bold">{step.name}()</span>
@@ -563,7 +581,7 @@ export function Answer({
       </div>
 
       {showReply && progress && (
-        <div className="bg-card mt-1 rounded-2xl rounded-tl-sm border p-3">
+        <div className="bg-card mt-1 rounded-2xl rounded-tl-sm border p-4 shadow-sm">
           <p className="text-primary mb-1 text-xs font-semibold">Copper</p>
           {!tools && (
             <div className="border-chart-3 mb-2 rounded-md border p-2 text-sm">
