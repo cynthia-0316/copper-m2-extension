@@ -180,8 +180,31 @@ function Sent({ step }: { step: ToolStep }) {
       </dl>
     );
   }
+  if (step.name === "recommend_setup") {
+    return (
+      <dl className="space-y-0.5">
+        <Field
+          label="Use"
+          value={USES[asText(input.use)] ?? asText(input.use)}
+        />
+        <Field label="Years" value={asText(input.years)} />
+        <Field
+          label="Budget"
+          value={input.budgetUsd === undefined ? "None" : usd(input.budgetUsd)}
+        />
+      </dl>
+    );
+  }
   return <p className="text-sm">{JSON.stringify(step.input)}</p>;
 }
+
+/** What the customer said they want to do, in words. */
+const USES: Record<string, string> = {
+  home: "At home",
+  meetings: "Meetings",
+  lectures: "Lectures",
+  both: "Home and meetings",
+};
 
 const PILL = "rounded-full px-2 py-0.5 text-xs font-medium";
 
@@ -326,6 +349,76 @@ function Came({ step }: { step: ToolStep }) {
             />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (step.name === "recommend_setup") {
+    const products = asList(out.products);
+    const years = asText(out.years);
+    const length = `${years} ${years === "1" ? "year" : "years"}`;
+    return (
+      <div className="space-y-3 text-sm">
+        {products.map((product, i) => {
+          const feature = asRow(product.feature);
+          return (
+            <div key={i} className="space-y-1">
+              <div className="flex justify-between gap-3 font-medium">
+                <span>{asText(product.name)}</span>
+                <span>{usd(product.priceUsd)}</span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {asText(feature.name)}: {asText(feature.description)}
+              </p>
+              {Array.isArray(product.colors) ? (
+                asList(product.colors).map((row, j) => (
+                  <div
+                    key={j}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <span>{asText(row.color)}</span>
+                    <StockPill
+                      stock={asText(row.stock)}
+                      restockDate={row.restockDate}
+                    />
+                  </div>
+                ))
+              ) : (
+                <p>Stock can&apos;t be checked right now.</p>
+              )}
+            </div>
+          );
+        })}
+        {out.status === "over_budget" ? (
+          <p className="border-t pt-2">
+            {usd(out.budgetUsd)} isn&apos;t enough: the cheapest setup is{" "}
+            <span className="font-semibold">{usd(out.cheapestTotalUsd)}</span>{" "}
+            over {length}, {usd(out.shortByUsd)} more.
+          </p>
+        ) : (
+          <div className="space-y-1 border-t pt-2">
+            {asList(out.options).map((option, i) => (
+              <div key={i} className="flex items-center justify-between gap-3">
+                <span>
+                  {asText(option.name)}
+                  {option.plan === out.recommended && (
+                    <span
+                      className={cn(
+                        PILL,
+                        "bg-accent text-accent-foreground ml-2",
+                      )}
+                    >
+                      Recommended
+                    </span>
+                  )}
+                </span>
+                <span className="font-semibold">
+                  {usd(option.totalUsd)} over {length}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

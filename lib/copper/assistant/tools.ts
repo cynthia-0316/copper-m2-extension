@@ -1,7 +1,8 @@
-// Module 2: the four tools Ask Copper can use. Products and prices come from
+// Module 2: the tools Ask Copper can use. Products and prices come from
 // lib/copper/catalog.ts and stock from lib/copper/inventory.ts, so the
 // chatbot never has to make them up.
-// The contract for each tool is in specs/module-2/spec.md.
+// The contract for the first four tools is in specs/module-2/spec.md; the
+// fifth, recommend_setup, is the Part 3 extension.
 import { tool } from "ai";
 import { z } from "zod";
 import {
@@ -187,6 +188,140 @@ export async function checkAvailability(
   return { status: "ok", product: product.name, colors };
 }
 
+export type RecommendSetupInput = {
+  use: "home" | "meetings" | "lectures" | "both";
+  years: number;
+  budgetUsd?: number;
+};
+
+type Colors = Extract<Availability, { status: "ok" }>["colors"];
+
+export type RecommendedProduct = {
+  id: ProductId;
+  name: string;
+  priceUsd: number;
+  /** The catalog feature that fits what the customer wants to do. */
+  feature: { name: string; description: string };
+  /** Stock for each color, or `null` when stock can't be checked right now. */
+  colors: Colors | null;
+};
+
+export type SetupOption = {
+  plan: Plan["id"];
+  name: string;
+  totalUsd: number;
+  /** `null` when the customer gave no budget. */
+  withinBudget: boolean | null;
+};
+
+export type SetupRecommendation =
+  | {
+      status: "ok";
+      years: number;
+      budgetUsd: number | null;
+      products: RecommendedProduct[];
+      options: SetupOption[];
+      recommended: Plan["id"];
+    }
+  | {
+      status: "over_budget";
+      years: number;
+      budgetUsd: number;
+      products: RecommendedProduct[];
+      cheapestTotalUsd: number;
+      shortByUsd: number;
+    };
+
+export const recommendSetupInput: z.ZodType<RecommendSetupInput> = z.object({
+  use: z.enum(["home", "meetings", "lectures", "both"]),
+  years: z.number().int().min(1).max(5),
+  budgetUsd: z.number().positive().max(10000).optional(),
+});
+
+// What each kind of use needs: the product, and the catalog feature that
+// answers it. Features are looked up by name, so their wording stays in the
+// catalog and is never retyped here.
+const SETUPS: Record<
+  RecommendSetupInput["use"],
+  { id: ProductId; feature: string }[]
+> = {
+  home: [{ id: "copper-home", feature: "Smart-home control" }],
+  meetings: [{ id: "copper-notes", feature: "Meeting Mode" }],
+  lectures: [{ id: "copper-notes", feature: "Lecture Mode" }],
+  both: [
+    { id: "copper-home", feature: "Smart-home control" },
+    { id: "copper-notes", feature: "Meeting Mode" },
+  ],
+};
+
+/**
+ * recommend_setup: which devices and plan fit what a customer wants to do,
+ * what that costs over some years, and which colors they can get now. Totals
+ * come from calculateCost and stock from checkAvailability, so it adds no
+ * facts of its own.
+ */
+export async function recommendSetup(
+  input: RecommendSetupInput,
+): Promise<SetupRecommendation> {
+  const catalog = getProducts();
+  const products: RecommendedProduct[] = [];
+  for (const { id, feature } of SETUPS[input.use]) {
+    const product = catalog.find((p) => p.id === id);
+    const found = product?.features.find((f) => f.name === feature);
+    if (!product || !found) throw new Error(`Unknown setup: ${id}, ${feature}`);
+    const stock = await checkAvailability({ product: id });
+    products.push({
+      id,
+      name: product.name,
+      priceUsd: product.priceUsd,
+      feature: found,
+      colors: stock.status === "ok" ? stock.colors : null,
+    });
+  }
+
+  const ids = products.map((p) => p.id);
+  const options: SetupOption[] = getPlans().map((plan) => {
+    const { totalUsd } = calculateCost({
+      products: ids,
+      plan: plan.id,
+      billing: "annual",
+      years: input.years,
+    });
+    return {
+      plan: plan.id,
+      name: plan.name,
+      totalUsd,
+      withinBudget:
+        input.budgetUsd === undefined ? null : totalUsd <= input.budgetUsd,
+    };
+  });
+
+  // Free costs the least, so if even that is over budget there is nothing to
+  // recommend; say by how much instead.
+  const cheapest = Math.min(...options.map((o) => o.totalUsd));
+  if (input.budgetUsd !== undefined && cheapest > input.budgetUsd) {
+    return {
+      status: "over_budget",
+      years: input.years,
+      budgetUsd: input.budgetUsd,
+      products,
+      cheapestTotalUsd: cheapest,
+      shortByUsd: toCents(cheapest - input.budgetUsd),
+    };
+  }
+
+  // Copper Plus when it fits (or no budget was given), otherwise the free plan.
+  const plus = options.find((o) => o.plan === "copper-plus");
+  return {
+    status: "ok",
+    years: input.years,
+    budgetUsd: input.budgetUsd ?? null,
+    products,
+    options,
+    recommended: plus && plus.withinBudget !== false ? "copper-plus" : "free",
+  };
+}
+
 export const copperTools = {
   get_products: tool({
     description:
@@ -211,5 +346,11 @@ export const copperTools = {
       "Checks today's stock for a Copper product, for one color or all of them; use it for 'is that color in stock?'.",
     inputSchema: checkAvailabilityInput,
     execute: async (input) => checkAvailability(input),
+  }),
+  recommend_setup: tool({
+    description:
+      "Recommends which Copper devices and plan fit what the customer wants to do (at home, meetings, lectures, or both), over 1 to 5 years and an optional budget in dollars. Returns the total cost of each plan and which colors are in stock; use it for 'what should I buy?'.",
+    inputSchema: recommendSetupInput,
+    execute: async (input) => recommendSetup(input),
   }),
 };

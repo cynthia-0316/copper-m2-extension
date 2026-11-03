@@ -10,6 +10,26 @@ together; [`specs/`](specs/README.md) holds each module's work.
 
 _Fictional — for educational use._
 
+## Extension: a fifth tool, `recommend_setup`
+
+This repo is `copper-m2` plus one tool. Ask Copper had four tools (products,
+prices, cost, stock); the fifth answers "what should I buy?".
+
+Ask it something like: _"I'm a student who records lectures. I have $200 for 2
+years. What should I get, and what colors can I get right now?"_
+
+`recommend_setup` takes what you want to do (home, meetings, lectures or both),
+how many years, and an optional budget. It returns the devices that fit, the
+cost of the free plan and of Copper Plus over those years, which plan it
+recommends, and which colors are in stock or back-ordered. Prices come from the
+catalog and stock from the database, the same sources as the other tools, so it
+never invents a number. If even the free plan is over budget, it says by how much.
+
+**Known difference from `copper-m2`:** the course checks `AC-M2.8` and
+`AC-M2.14` say Copper has "all four tools", so they fail here (25 of 27). Those
+files are read-only, so they were left as they are. The repo's own tests in
+`tests/` expect five tools and pass.
+
 The app builds and runs with **no environment variables**. Pages that need a
 model key show a "Set up …" card until you add one.
 

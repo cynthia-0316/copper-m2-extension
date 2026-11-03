@@ -93,6 +93,7 @@ you handle them.
 | Piece | Where | What it does |
 |---|---|---|
 | Tools | `lib/copper/assistant/tools.ts` | `get_products`, `get_prices`, `calculate_cost`, `check_availability`, each with a zod input contract |
+| Extension tool | `lib/copper/assistant/tools.ts` | `recommend_setup` (Part 3): picks devices and a plan for a use, budget and number of years, with totals from `calculateCost` and colors from `checkAvailability`. It adds no facts of its own; if even the free plan is over budget it says by how much instead of recommending |
 | Data | `lib/copper/catalog.ts`, `lib/copper/inventory.ts` | Prices and colors from the catalog; stock read fresh from `readInventory()` on every call |
 | Database | Supabase `inventory` table (`supabase/migrations/`, `supabase/seed.sql`) | One row per product color. Readable by anyone with the publishable key, writable by nobody through the app; stock is edited in the Supabase Table Editor |
 

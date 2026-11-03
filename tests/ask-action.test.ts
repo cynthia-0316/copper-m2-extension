@@ -108,7 +108,7 @@ describe("askCopper", () => {
   it("sends instructions and tools only when tools are on", async () => {
     await finalValue((await run(true)).progress);
     expect(lastOptions.instructions).toBeTruthy();
-    expect(Object.keys(lastOptions.tools as object)).toHaveLength(4);
+    expect(Object.keys(lastOptions.tools as object)).toHaveLength(5);
     await finalValue((await run(false)).progress);
     expect(lastOptions.instructions).toBeUndefined();
     expect(lastOptions.tools).toBeUndefined();
